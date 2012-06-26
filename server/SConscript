@@ -1,0 +1,7 @@
+
+Import('server_env')
+
+for i in server_env.Glob('*.cpp'):
+        server_env.src_files.append(server_env.Object(i))
+
+Export('server_env')

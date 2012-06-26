@@ -1,0 +1,16 @@
+iPMO: i Pimp Myself and Others - invasive resource manager
+
+build		- Build directory
+client_mpi_tbb	- Client example: MPI NUMA domains
+client_omp	- Client example: OpenMP
+client_tbb	- Client example: Threading Building Blocks
+copyright.txt
+include		- Include directory
+Makefile	- Makefile executing some scons commands
+package		- For packaging
+README		- This file
+SConstruct	- SConstruct for building iPMO servers and clients
+server		- Invasive resource manager
+
+
+

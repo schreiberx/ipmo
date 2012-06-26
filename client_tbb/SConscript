@@ -1,0 +1,7 @@
+
+Import('client_tbb_env')
+
+for i in client_tbb_env.Glob('*.cpp'):
+        client_tbb_env.src_files.append(client_tbb_env.Object(i))
+
+Export('client_tbb_env')

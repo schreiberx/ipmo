@@ -1,0 +1,7 @@
+
+Import('client_omp_env')
+
+for i in client_omp_env.Glob('*.cpp'):
+        client_omp_env.src_files.append(client_omp_env.Object(i))
+
+Export('client_omp_env')
