@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
 
 parameter_error:
 	std::cout << "usage: " << argv[0] << std::endl;
-	std::cout << "	[-v [int]: verbose mode (0-100)]" << std::endl;
+	std::cout << "	[-v [int]: verbose mode (0-100), tabular output (-99)]" << std::endl;
 	std::cout << "	[-n [int]: number of threads to use]" << std::endl;
 	std::cout << "	[-c : activate color mode]" << std::endl;
 	return -1;

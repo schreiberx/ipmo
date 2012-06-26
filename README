@@ -1,16 +1,45 @@
 iPMO: i Pimp Myself and Others - invasive resource manager
 
-build		- Build directory
-client_mpi_tbb	- Client example: MPI NUMA domains
-client_omp	- Client example: OpenMP
-client_tbb	- Client example: Threading Building Blocks
-copyright.txt
-include		- Include directory
-Makefile	- Makefile executing some scons commands
-package		- For packaging
-README		- This file
-SConstruct	- SConstruct for building iPMO servers and clients
-server		- Invasive resource manager
+
+Directory structure:
+
+	build		- Build directory
+	client_mpi_tbb	- Client example: MPI NUMA domains
+	client_omp	- Client example: OpenMP
+	client_tbb	- Client example: Threading Building Blocks
+	copyright.txt
+	include		- Include directory
+	Makefile	- Makefile executing some scons commands
+	README		- This file
+	SConstruct	- SConstruct for building iPMO servers and clients
+	server		- Invasive resource manager
 
 
 
+Compilation:
+
+	SCons (see http://www.scons.org/) is used for compilation.
+
+	See `scons --help` for more information.
+
+	E. g. use `scons --mode=release --compiler=intel` to compile a release candidate with omp client and intel compiler.
+	The build can be found afterwards in the ./build directory.
+
+	Use --client scons option to specify client to compile:
+		omp: OpenMP Client
+		tbb: Threading Building Blocks Client
+		mpi_tbb: MPI NUMA Domains with TBB invasive manager
+
+
+Execution:
+	
+	Start resource manager:
+		./build/server_ipmo_debug
+		Use -v -99 for tabular output
+		Use -c for colorized output of resources
+
+	Start client application:
+		./build/client_omp_debug 25
+		The parameter specifies one of the available test numbers.
+		For available test numbers, see source-code.
+		

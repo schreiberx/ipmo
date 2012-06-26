@@ -78,6 +78,20 @@ AddOption(	'--mode',
 setupStringOption('mode', mode_constraints, 'debug')
 
 
+#
+# compile mode (omp/tbb/mpi_tbb)
+#
+client_constraints = ['none', 'omp', 'tbb', 'mpi_tbb']
+AddOption(	'--client',
+		dest='client',
+		type='string',
+		nargs=1,
+		action='store',
+		help='specify client to compile (none/omp/tbb/mpi_tbb), default: omp')
+
+setupStringOption('client', client_constraints, 'omp')
+
+
 
 ############################
 # BUILD BINARIES
@@ -167,52 +181,54 @@ server_env.Program('build/'+server_program_name, server_env.src_files)
 # OMP CLIENT
 ################################################################################################
 
-client_omp_program_name = "client_omp"
+if env['client'] == 'omp':
 
-# mode
-client_omp_program_name += '_'+env['mode']
+	client_omp_program_name = "client_omp"
 
-print
-print 'Building client program "'+client_omp_program_name+'"'
-print
+	# mode
+	client_omp_program_name += '_'+env['mode']
 
-client_omp_env = env.Clone()
+	print
+	print 'Building client program "'+client_omp_program_name+'"'
+	print
 
-
-if client_omp_env['compiler'] == 'gnu':
-	client_omp_env.Append(CXXFLAGS=' -fopenmp')
-	client_omp_env.Append(LINKFLAGS=' -fopenmp')
-	client_omp_env.Replace(CXX = 'g++')
-
-elif client_omp_env['compiler'] == 'intel':
-	client_omp_env.Append(CXXFLAGS=' -openmp')
-	client_omp_env.Append(LINKFLAGS=' -openmp')
-	client_omp_env.Replace(CXX = 'icpc')
+	client_omp_env = env.Clone()
 
 
+	if client_omp_env['compiler'] == 'gnu':
+		client_omp_env.Append(CXXFLAGS=' -fopenmp')
+		client_omp_env.Append(LINKFLAGS=' -fopenmp')
+		client_omp_env.Replace(CXX = 'g++')
 
-############################
-# build directory
-#
-
-client_omp_build_dir='build/build_'+client_omp_program_name
-
-############################
-# source files
-#
-
-client_omp_env.src_files = []
-
-Export('client_omp_env')
-client_omp_env.SConscript('client_omp/SConscript', variant_dir=client_omp_build_dir, duplicate=0)
-Import('client_omp_env')
+	elif client_omp_env['compiler'] == 'intel':
+		client_omp_env.Append(CXXFLAGS=' -openmp')
+		client_omp_env.Append(LINKFLAGS=' -openmp')
+		client_omp_env.Replace(CXX = 'icpc')
 
 
-############################
-# build program
-#
 
-client_omp_env.Program('build/'+client_omp_program_name, client_omp_env.src_files)
+	############################
+	# build directory
+	#
+
+	client_omp_build_dir='build/build_'+client_omp_program_name
+
+	############################
+	# source files
+	#
+
+	client_omp_env.src_files = []
+
+	Export('client_omp_env')
+	client_omp_env.SConscript('client_omp/SConscript', variant_dir=client_omp_build_dir, duplicate=0)
+	Import('client_omp_env')
+
+
+	############################
+	# build program
+	#
+
+	client_omp_env.Program('build/'+client_omp_program_name, client_omp_env.src_files)
 
 
 
@@ -221,61 +237,63 @@ client_omp_env.Program('build/'+client_omp_program_name, client_omp_env.src_file
 # TBB CLIENT
 ################################################################################################
 
-client_tbb_program_name = "client_tbb"
+if env['client'] == 'tbb':
 
-# mode
-client_tbb_program_name += '_'+env['mode']
+	client_tbb_program_name = "client_tbb"
 
-print
-print 'Building client program "'+client_tbb_program_name+'"'
-print
+	# mode
+	client_tbb_program_name += '_'+env['mode']
 
-client_tbb_env = env.Clone()
+	print
+	print 'Building client program "'+client_tbb_program_name+'"'
+	print
 
-
-if client_tbb_env['compiler'] == 'gnu':
-	client_tbb_env.Replace(CXX = 'g++')
-
-elif client_tbb_env['compiler'] == 'intel':
-	client_tbb_env.Replace(CXX = 'icpc')
-
-client_tbb_env.Append(CXXFLAGS=' -DCOMPILE_WITH_TBB=1')
-client_tbb_env.Append(CXXFLAGS=' -I'+os.environ['TBBROOT']+'/include/')
-
-client_tbb_env.Append(LIBPATH=[os.environ['TBBROOT']+'/lib/'])
-
-if os.environ['LD_LIBRARY_PATH'] != None:
-	client_tbb_env.Append(LIBPATH=os.environ['LD_LIBRARY_PATH'].split(':'))
-
-if env['mode'] == 'debug':
-	client_tbb_env.Append(LIBS=['tbb_debug'])
-else:
-	client_tbb_env.Append(LIBS=['tbb'])
+	client_tbb_env = env.Clone()
 
 
-############################
-# build directory
-#
+	if client_tbb_env['compiler'] == 'gnu':
+		client_tbb_env.Replace(CXX = 'g++')
 
-client_tbb_build_dir='build/build_'+client_tbb_program_name
+	elif client_tbb_env['compiler'] == 'intel':
+		client_tbb_env.Replace(CXX = 'icpc')
+
+	client_tbb_env.Append(CXXFLAGS=' -DCOMPILE_WITH_TBB=1')
+	client_tbb_env.Append(CXXFLAGS=' -I'+os.environ['TBBROOT']+'/include/')
+
+	client_tbb_env.Append(LIBPATH=[os.environ['TBBROOT']+'/lib/'])
+
+	if os.environ['LD_LIBRARY_PATH'] != None:
+		client_tbb_env.Append(LIBPATH=os.environ['LD_LIBRARY_PATH'].split(':'))
+
+	if env['mode'] == 'debug':
+		client_tbb_env.Append(LIBS=['tbb_debug'])
+	else:
+		client_tbb_env.Append(LIBS=['tbb'])
 
 
-############################
-# source files
-#
+	############################
+	# build directory
+	#
 
-client_tbb_env.src_files = []
-
-Export('client_tbb_env')
-client_tbb_env.SConscript('client_tbb/SConscript', variant_dir=client_tbb_build_dir, duplicate=0)
-Import('client_tbb_env')
+	client_tbb_build_dir='build/build_'+client_tbb_program_name
 
 
-############################
-# build program
-#
+	############################
+	# source files
+	#
 
-client_tbb_env.Program('build/'+client_tbb_program_name, client_tbb_env.src_files)
+	client_tbb_env.src_files = []
+
+	Export('client_tbb_env')
+	client_tbb_env.SConscript('client_tbb/SConscript', variant_dir=client_tbb_build_dir, duplicate=0)
+	Import('client_tbb_env')
+
+
+	############################
+	# build program
+	#
+
+	client_tbb_env.Program('build/'+client_tbb_program_name, client_tbb_env.src_files)
 
 
 
@@ -287,65 +305,67 @@ client_tbb_env.Program('build/'+client_tbb_program_name, client_tbb_env.src_file
 # MPI/TBB CLIENT
 ################################################################################################
 
-client_mpi_tbb_program_name = "client_mpi_tbb"
+if env['client'] == 'mpi_tbb':
 
-# mode
-client_mpi_tbb_program_name += '_'+env['mode']
+	client_mpi_tbb_program_name = "client_mpi_tbb"
 
-print
-print 'Building client program "'+client_mpi_tbb_program_name+'"'
-print
+	# mode
+	client_mpi_tbb_program_name += '_'+env['mode']
 
-client_mpi_tbb_env = env.Clone()
+	print
+	print 'Building client program "'+client_mpi_tbb_program_name+'"'
+	print
 
-
-if client_mpi_tbb_env['compiler'] == 'gnu':
-    client_mpi_tbb_env.Replace(CXX = 'mpic++')
-    client_mpi_tbb_env.Append(CXXFLAGS=' -fopenmp')
-    client_mpi_tbb_env.Append(LINKFLAGS=' -fopenmp')
-
-elif client_mpi_tbb_env['compiler'] == 'intel':
-	print "Intel compiler with MPI not tested so far"
-#    client_mpi_tbb_env.Append(CXXFLAGS=' -openmp')
-    
-	sys.exit(-1)
-	#client_mpi_tbb_env.Replace(CXX = 'icpc')
-
-client_mpi_tbb_env.Append(CXXFLAGS=' -DCOMPILE_WITH_TBB=1')
-client_mpi_tbb_env.Append(CXXFLAGS=' -I'+os.environ['TBBROOT']+'/include/')
+	client_mpi_tbb_env = env.Clone()
 
 
-client_mpi_tbb_env.Append(LIBPATH=[os.environ['TBBROOT']+'/lib/'])
+	if client_mpi_tbb_env['compiler'] == 'gnu':
+		client_mpi_tbb_env.Replace(CXX = 'mpic++')
+		client_mpi_tbb_env.Append(CXXFLAGS=' -fopenmp')
+		client_mpi_tbb_env.Append(LINKFLAGS=' -fopenmp')
 
-if os.environ['LD_LIBRARY_PATH'] != None:
-	client_mpi_tbb_env.Append(LIBPATH=os.environ['LD_LIBRARY_PATH'].split(':'))
+	elif client_mpi_tbb_env['compiler'] == 'intel':
+		print "Warning: Intel compiler with MPI not tested so far"
+		client_mpi_tbb_env.Replace(CXX = 'mpic++')
+		client_mpi_tbb_env.Append(CXXFLAGS=' -openmp')
+		client_mpi_tbb_env.Append(LINKFLAGS=' -openmp')
+		client_mpi_tbb_env.Replace(CXX = 'icpc')
 
-if env['mode'] == 'debug':
-	client_mpi_tbb_env.Append(LIBS=['tbb_debug'])
-else:
-	client_mpi_tbb_env.Append(LIBS=['tbb'])
-
-
-############################
-# build directory
-#
-
-client_mpi_tbb_build_dir='build/build_'+client_mpi_tbb_program_name
+	client_mpi_tbb_env.Append(CXXFLAGS=' -DCOMPILE_WITH_TBB=1')
+	client_mpi_tbb_env.Append(CXXFLAGS=' -I'+os.environ['TBBROOT']+'/include/')
 
 
-############################
-# source files
-#
+	client_mpi_tbb_env.Append(LIBPATH=[os.environ['TBBROOT']+'/lib/'])
 
-client_mpi_tbb_env.src_files = []
+	if os.environ['LD_LIBRARY_PATH'] != None:
+		client_mpi_tbb_env.Append(LIBPATH=os.environ['LD_LIBRARY_PATH'].split(':'))
 
-Export('client_mpi_tbb_env')
-client_mpi_tbb_env.SConscript('client_mpi_tbb/SConscript', variant_dir=client_mpi_tbb_build_dir, duplicate=0)
-Import('client_mpi_tbb_env')
+	if env['mode'] == 'debug':
+		client_mpi_tbb_env.Append(LIBS=['tbb_debug'])
+	else:
+		client_mpi_tbb_env.Append(LIBS=['tbb'])
 
 
-############################
-# build program
-#
+	############################
+	# build directory
+	#
 
-client_mpi_tbb_env.Program('build/'+client_mpi_tbb_program_name, client_mpi_tbb_env.src_files)
+	client_mpi_tbb_build_dir='build/build_'+client_mpi_tbb_program_name
+
+
+	############################
+	# source files
+	#
+
+	client_mpi_tbb_env.src_files = []
+
+	Export('client_mpi_tbb_env')
+	client_mpi_tbb_env.SConscript('client_mpi_tbb/SConscript', variant_dir=client_mpi_tbb_build_dir, duplicate=0)
+	Import('client_mpi_tbb_env')
+
+
+	############################
+	# build program
+	#
+
+	client_mpi_tbb_env.Program('build/'+client_mpi_tbb_program_name, client_mpi_tbb_env.src_files)
