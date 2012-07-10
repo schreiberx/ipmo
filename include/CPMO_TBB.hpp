@@ -104,8 +104,9 @@ public:
 	/**
 	 * constructor
 	 */
-	CPMO_TBB(int i_max_threads = -1)	:
-		CPMO(i_max_threads)
+	CPMO_TBB(
+			int i_max_threads = -1	///< maximum number of threads
+	)
 	{
 		if (max_threads <= 0)
 			max_threads = tbb::task_scheduler_init::default_num_threads();

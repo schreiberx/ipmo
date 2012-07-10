@@ -67,6 +67,10 @@ public:
 		max_msg_size(i_max_msg_size)
 	{
 		msg_buffer = (msgbuf*)new char[max_msg_size+sizeof(long int)];
+#if 1
+		// initialize message queue with arbitrary data
+		memset(msg_buffer, 255, max_msg_size+sizeof(long int));
+#endif
 
 		msg_data_load_ptr = msg_buffer->mtext;
 	}

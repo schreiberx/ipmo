@@ -238,7 +238,6 @@ public:
 	 * constructor
 	 */
 	CPMO(
-			int i_max_threads = -1,		///< number of maximum allowed threads
 			int i_verbose_level = 0		///< verbosity
 	)
 	{
@@ -264,6 +263,7 @@ public:
 		 */
 		sPMOMessage->package_type = SPMOMessage::CLIENT_SETUP;
 		sPMOMessage->data.client_setup.pid = this_pid;
+		sPMOMessage->data.client_setup.seq_id = last_seq_id;
 
 		cMessageQueue->sendToServer(
 				(size_t)&(sPMOMessage->data.client_setup) - (size_t)sPMOMessage +

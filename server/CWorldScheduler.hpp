@@ -125,6 +125,9 @@ public:
 		else
 			max_cores = i_max_cores;
 
+		if (verbose_level > 5)
+			std::cout << "max cores: " << max_cores << std::endl;
+
 		// pre-allocate
 		core_pids.reserve(max_cores);
 

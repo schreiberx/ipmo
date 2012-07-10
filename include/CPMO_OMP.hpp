@@ -44,10 +44,9 @@ public:
 			int i_max_threads = -1,
 			bool i_delayed_parallel_region_mode = false
 	)	:
-		CPMO(i_max_threads),
 		delayed_parallel_region_mode(i_delayed_parallel_region_mode)
 	{
-		if (max_threads <= 0)
+		if (i_max_threads <= 0)
 			max_threads = omp_get_max_threads();
 		else
 			max_threads = i_max_threads;
@@ -164,9 +163,16 @@ public:
 		#pragma omp parallel for shared(i_cpu_affinities) schedule(static,1)
 		for (int i = 0; i < num_running_threads; i++)
 		{
+#if DEBUG
+			if (i_cpu_affinities[i] >= max_threads)
+			{
+#pragma omp critical
+				std::cerr << "requested cpu affinity: " << i_cpu_affinities[i] << " with max threads " << max_threads << std::endl;
+				assert(false);
+			}
 			assert(i_cpu_affinities[i] >= 0);
 			assert(i_cpu_affinities[i] < max_threads);
-
+#endif
 			cpu_set_t cpu_set;
 			CPU_ZERO(&cpu_set);
 			CPU_SET(i_cpu_affinities[i], &cpu_set);

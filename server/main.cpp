@@ -48,7 +48,7 @@ void myCTRLCHandler(int s)
 
 
 int verbose_level = 2;
-int num_threads = -1;
+int max_cores = -1;
 bool color_mode = false;
 
 int main(int argc, char *argv[])
@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
 			break;
 
 		case 'n':
-			num_threads = atoi(optarg);
+			max_cores = atoi(optarg);
 			break;
 
 		case 'h':
@@ -88,7 +88,7 @@ parameter_error:
 parameter_ok:
 	std::cout << "STARTING WORLD SCHEDULER SERVER" << std::endl;
 
-	cWorldScheduler = new CWorldScheduler(num_threads, verbose_level, color_mode);
+	cWorldScheduler = new CWorldScheduler(max_cores, verbose_level, color_mode);
 
 //	signal(SIGABRT, &myCTRLCHandler);
 //	signal(SIGTERM, &myCTRLCHandler);
