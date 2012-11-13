@@ -92,6 +92,17 @@ AddOption(	'--client',
 setupStringOption('client', client_constraints, 'omp')
 
 
+################################################################
+# MIC
+################################################################
+
+#
+# MIC (true/false)
+#
+AddOption(	'--enable-mic',		dest='enable_mic',		type='string',		action='store',		help='Build for MIC architecture. default: off')
+setupBoolOption('enable_mic', False)
+
+
 
 ############################
 # BUILD BINARIES
@@ -103,6 +114,11 @@ if env['compiler'] == 'gnu':
 
 elif env['compiler'] == 'intel':
 	env.Append(CXXFLAGS=' -std=c++0x')
+
+	# SSE 4.2
+	if env['enable_mic']:
+		env.Append(CXXFLAGS=' -mmic')
+		env.Append(LINKFLAGS=' -mmic')
 
 
 if env['mode'] == 'debug':
@@ -122,6 +138,7 @@ elif env['mode'] == 'release':
 
 	elif env['compiler'] == 'intel':
 		env.Append(CXXFLAGS=' -O3 -fast -fno-alias')
+
 
 
 ################################################################################################
@@ -262,7 +279,7 @@ if env['client'] == 'tbb':
 
 	client_tbb_env.Append(LIBPATH=[os.environ['TBBROOT']+'/lib/'])
 
-	if os.environ['LD_LIBRARY_PATH'] != None:
+	if 'LD_LIBRARY_PATH' in os.environ:
 		client_tbb_env.Append(LIBPATH=os.environ['LD_LIBRARY_PATH'].split(':'))
 
 	if env['mode'] == 'debug':

@@ -142,11 +142,13 @@ public:
 	}
 
 
+
 	void delayedUpdateNumberOfThreads()
 	{
 		// not available / meaningful for tbb
 		assert(false);
 	}
+
 
 
 	/**
@@ -183,7 +185,7 @@ public:
 		if (num_running_threads == 0)
 			return;
 
-		assert(i_number_of_cpu_affinities == (size_t)num_running_threads);
+		assert(i_number_of_cpu_affinities == num_running_threads);
 
 		CAffinitySetterTask::m_result = true;
 		CAffinitySetterTask::m_nThreads = i_number_of_cpu_affinities;

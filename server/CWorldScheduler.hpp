@@ -75,7 +75,9 @@ class CWorldScheduler
 	double sum_client_shutdown_hint;
 	double sum_client_shutdown_hint_div_time;
 
-	// sequential id for message
+	/*
+	 * sequential id for message
+	 */
 	unsigned long seq_id;
 
 	/**
@@ -176,7 +178,7 @@ public:
 	 * release all cores associated to the given client
 	 */
 	void releaseAllClientCores(
-			CClient *i_cClient,	///< client for which the resources are released
+			CClient *i_cClient,				///< client for which the resources are released
 			bool i_skip_first_core = false	///< skip freeing the first core
 	)
 	{
@@ -186,7 +188,10 @@ public:
 		std::list<int>::iterator iter = i_cClient->assigned_cores.begin();
 
 		if (i_skip_first_core)
+		{
+			assert(iter != i_cClient->assigned_cores.end());
 			iter++;
+		}
 
 		while (iter != i_cClient->assigned_cores.end())
 		{
@@ -368,24 +373,24 @@ public:
 			std::cout << cStopwatch.getTimeSinceStart() << "\t: " << i_client_pid << std::endl;
 
 		int clientVecId;
-		CClient *c = searchClient(i_client_pid, &clientVecId);
+		CClient *cClient = searchClient(i_client_pid, &clientVecId);
 
-		if (c == 0)
+		if (cClient == 0)
 		{
 			if (verbose_level > 3)
 				std::cout << "client not found -> ignoring invade" << std::endl;
 			return -1;
 		}
 
-		c->retreat_active = false;
-		c->constraint_min_cores = i_min_cores;
-		c->constraint_max_cores = i_max_cores;
-		c->distribution_hint = i_distribution_hint;
-		c->setScalabilityGraph(i_scalability_graph, i_scalability_graph_size);
+		cClient->retreat_active = false;
+		cClient->constraint_min_cores = i_min_cores;
+		cClient->constraint_max_cores = i_max_cores;
+		cClient->distribution_hint = i_distribution_hint;
+		cClient->setScalabilityGraph(i_scalability_graph, i_scalability_graph_size);
 
 		if (verbose_level > 5 || verbose_level <= -103)
 		{
-			std::cout << *c << ": invade - min/max cores: " << i_min_cores << "/" << i_max_cores << "   scalability: ";
+			std::cout << *cClient << ": invade - min/max cores: " << i_min_cores << "/" << i_max_cores << "   scalability: ";
 			for (int i = 0; i < i_scalability_graph_size; i++)
 				std::cout << i_scalability_graph[i] << " ";
 			std::cout << std::endl;
@@ -395,46 +400,47 @@ public:
 
 		if (i_update_resources_async)
 		{
-			applyNewOptimumForClientAsync(c, clientVecId, false);
+			applyNewOptimumForClientAsync(cClient, clientVecId, false);
 
-			if (c->number_of_assigned_cores == 0)
+			if (cClient->number_of_assigned_cores == 0)
 			{
 				// number of assigned cores == 0
 				// => wait until resources are released
 
 				if (verbose_level >= 5)
-					std::cout << "DELAYED INVADE ACK (" << c->pid << ") => wait until at least one core is released!" << std::endl;
-				delayed_setup_acks_clients.push_back(c);
+					std::cout << "DELAYED INVADE ACK (" << cClient->pid << ") => wait until at least one core is released!" << std::endl;
+
+				delayed_setup_acks_clients.push_back(cClient);
 
 				searchAndSendDelayedACKs();
-				return c->client_id;
+				return cClient->client_id;
 			}
 		}
 		else
 		{
-			bool anythingChanged = applyNewOptimumForClient(*c, clientVecId);
+			bool anythingChanged = applyNewOptimumForClient(*cClient, clientVecId);
 
 			sendAsyncReinvadeAnswers();
 
 			searchAndSendDelayedACKs();
 
-			if (c->number_of_assigned_cores == 0)
+			if (cClient->number_of_assigned_cores == 0)
 			{
 				// number of assigned cores == 0
 				// => wait until resources are released
 
-				std::cout << "DELAYED INVADE ACK (" << c->pid << ") => wait until at least one core is released!" << std::endl;
-				delayed_setup_acks_clients.push_back(c);
-				return c->client_id;
+				std::cout << "DELAYED INVADE ACK (" << cClient->pid << ") => wait until at least one core is released!" << std::endl;
+				delayed_setup_acks_clients.push_back(cClient);
+				return cClient->client_id;
 			}
 
-			updateResourceDistributionAndSendClientMessage(c, anythingChanged);
+			updateResourceDistributionAndSendClientMessage(cClient, anythingChanged);
 		}
 
 		if (!i_update_resources_async)
-			printCurrentState("client_invade", c->client_id);
+			printCurrentState("client_invade", cClient->client_id);
 
-		return  c->client_id;
+		return  cClient->client_id;
 	}
 
 
@@ -519,6 +525,9 @@ public:
 		}
 
 		cClient->reinvade_nonblocking_active = false;
+
+		if (cClient->retreat_active)
+			return;
 
 		if (verbose_level > 5 || verbose_level <= -100)
 		{
@@ -630,24 +639,32 @@ public:
 			std::cout << "RETREAT (" << i_client_pid << ")" << std::endl;
 
 		int i;
-		CClient *c = searchClient(i_client_pid, &i);
+		CClient *cClient = searchClient(i_client_pid, &i);
 
-		if (c == 0)
+		if (cClient == 0)
 		{
 			if (verbose_level > 5)
-				std::cout << "CLIENT not found" << std::endl;
+				std::cout << "CLIENT (" << cClient->client_id << ") not found" << std::endl;
 			return;
 		}
 
-		c->retreat_active = true;
+		cClient->retreat_active = true;
 
-		// release all client cores except the first one!
-		releaseAllClientCores(c, true);
 
-		c->constraint_max_cores = 1;
-		c->constraint_min_cores = 1;
+		/*
+		 * the special circumstance of `#cores == 0` can occur whenever an
+		 * async invade was triggered => simply do nothing
+		 */
+		if (cClient->number_of_assigned_cores != 0)
+		{
+			// release all client cores except the first one!
+			releaseAllClientCores(cClient, true);
 
-		runGlobalOptimization();
+			cClient->constraint_max_cores = 1;
+			cClient->constraint_min_cores = 1;
+
+			runGlobalOptimization();
+		}
 
 		msg_outgoing_ack(i_client_pid);
 
@@ -655,7 +672,7 @@ public:
 
 		sendAsyncReinvadeAnswers();
 
-		printCurrentState("retreat", c->client_id);
+		printCurrentState("retreat", cClient->client_id);
 	}
 
 
@@ -1227,7 +1244,14 @@ public:
 
 		if (verbose_level <= -99)
 		{
-			std::cout << cStopwatch.getTimeSinceStart() << "\t: [ ";
+			// see http://stdcxx.apache.org/doc/stdlibug/28-3.html for more information about formatting of std::cout
+			std::ios_base::fmtflags original_flags = std::cout.flags();
+			std::cout.setf(std::ios_base::left, std::ios_base::adjustfield);
+			std::cout.width(10);
+			std::cout << cStopwatch.getTimeSinceStart();
+			std::cout.flags(original_flags);
+			std::cout << ": [ ";
+
 			for (int i = 0; i < max_cores; i++)
 			{
 				int pid = core_pids[i];
@@ -1344,7 +1368,6 @@ public:
 		float inv_sum_distribution_hint = 0;
 		if (sum_distribution_hint > 0)
 			inv_sum_distribution_hint = (float)max_cores/sum_distribution_hint;
-
 
 		float current_scalability = computeScalability(optimal_cpu_distribution);
 

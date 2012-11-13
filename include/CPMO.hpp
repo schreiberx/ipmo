@@ -62,6 +62,11 @@ private:
 	 */
 	bool shutdown_in_progress;
 
+	/**
+	 * retreat is currently in progress
+	 * => don't send anymore any async ACK's
+	 */
+	bool retreat_in_progress;
 
 	/**
 	 * singleton for ctrl-c handler
@@ -73,8 +78,9 @@ private:
 	 */
 	int verbose_level;
 
-//	int affinities[1024];
-
+	/**
+	 * last seq id
+	 */
 	unsigned long last_seq_id;
 
 
@@ -239,12 +245,14 @@ public:
 	 */
 	CPMO(
 			int i_verbose_level = 0		///< verbosity
-	)
+	)	:
+		num_running_threads(0),
+		client_shutdown_hint(0),
+		shutdown_in_progress(false),
+		retreat_in_progress(false),
+		verbose_level(i_verbose_level),
+		last_seq_id(0)
 	{
-		verbose_level = i_verbose_level;
-		client_shutdown_hint = 0;
-		last_seq_id = 0;
-		shutdown_in_progress = false;
 		this_pid = getpid();
 
 		if (verbose_level > 1)
@@ -404,6 +412,9 @@ private:
 				assert(sPMOMessage->data.invade.seq_id > last_seq_id);
 				last_seq_id = sPMOMessage->data.invade_answer.seq_id;
 
+				if (retreat_in_progress)
+					return false;
+
 				return handleReinvadeNonblocking();
 
 			case SPMOMessage::SERVER_ACK:
@@ -473,6 +484,11 @@ public:
 			float i_distribution_hint = -1.0f				///< distribution hint
 	)
 	{
+		/*
+		 * TODO: probably another handling is necessary to assure that all
+		 */
+		retreat_in_progress = false;
+
 		msg_send_invade(
 				i_min_cpus,
 				i_max_cpus,
@@ -566,6 +582,8 @@ public:
 	 */
 	void retreat(bool dontWaitForAck = false)
 	{
+		retreat_in_progress = true;
+
 		sPMOMessage->package_type = SPMOMessage::CLIENT_RETREAT;
 		sPMOMessage->data.retreat.pid = this_pid;
 

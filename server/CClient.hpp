@@ -12,38 +12,63 @@
 #include <vector>
 
 
+
+/**
+ * this class provides a container for all information associated to a client
+ */
 class CClient
 {
 public:
-	/*
+	/**
 	 * process id of client
 	 */
 	pid_t pid;
 
-	/*
+	/**
 	 * unique id of client
 	 */
 	int client_id;
 
-	/*
-	 * constraints / hints
+	/**
+	 * constraints / hints: minimum number of cores
 	 */
-	int constraint_min_cores;	///< minimum number of requested cores
-	int constraint_max_cores;	///< maximum number of cores
+	int constraint_min_cores;
 
-	float distribution_hint;	///< distribution hint
+	/**
+	 * constraints / hints: maximum number of cores
+	 */
+	int constraint_max_cores;
 
-	std::vector<float> hint_scalability_graph;	///< scalability graph
+	/**
+	 * distribution hint
+	 */
+	float distribution_hint;
 
-	bool retreat_active;	///< retreat triggered?
+	/**
+	 * scalability graph
+	 */
+	std::vector<float> hint_scalability_graph;
 
-	bool reinvade_nonblocking_active;	///< nonblocking reinvade information active
+	/**
+	 * retreat triggered?
+	 */
+	bool retreat_active;
 
-	/*
-	 * assigned cores + list
+	/**
+	 * nonblocking reinvade information active
+	 */
+	bool reinvade_nonblocking_active;
+
+	/**
+	 * number of assigned cores
 	 */
 	int number_of_assigned_cores;
+
+	/**
+	 * list with assigned cores
+	 */
 	std::list<int> assigned_cores;
+
 
 
 	/**
@@ -53,13 +78,17 @@ public:
 			pid_t i_pid,		///< process id of client application
 			int i_client_id		///< unique client id
 	)	:
+		pid(i_pid),
 		client_id(i_client_id),
+		constraint_min_cores(0),
+		constraint_max_cores(0),
+		distribution_hint(0),
 		retreat_active(false),
-		reinvade_nonblocking_active(false)
+		reinvade_nonblocking_active(false),
+		number_of_assigned_cores(0)
 	{
-		pid = i_pid;
-		number_of_assigned_cores = 0;
 	}
+
 
 
 	/**
@@ -68,6 +97,7 @@ public:
 	~CClient()
 	{
 	}
+
 
 
 	/**
@@ -80,6 +110,7 @@ public:
 		assigned_cores.push_back(i_core_id);
 		number_of_assigned_cores++;
 	}
+
 
 
 	/**
@@ -102,6 +133,7 @@ public:
 		assert(false);
 		exit(-1);
 	}
+
 
 
 	/**
@@ -131,6 +163,7 @@ public:
 	}
 
 
+
 	/**
 	 * update the scalability graph for a given client
 	 */
@@ -139,15 +172,21 @@ public:
 			int i_scalability_graph_size
 		)
 	{
+		assert(i_scalability_graph_size >= 0);
+
 		hint_scalability_graph.resize(i_scalability_graph_size, 0);
 		for (int i = 0; i < i_scalability_graph_size; i++)
 			hint_scalability_graph[i] = i_scalability_graph[i];
 	}
 
+
+
 	bool operator==(const CClient &cClient)
 	{
 		return pid == cClient.pid;
 	}
+
+
 
 	friend
 	::std::ostream&
