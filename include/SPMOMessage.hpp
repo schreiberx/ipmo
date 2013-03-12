@@ -1,8 +1,8 @@
 /*
- * CMessageQueue.hpp
+ * SPMOMessage.hpp
  *
  *  Created on: Mar 28, 2012
- *      Author: schreibm
+ *      Author: Martin Schreiber <martin.schreiber@in.tum.de>
  */
 
 #ifndef SPMOMESSAGE_HPP

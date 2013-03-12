@@ -2,7 +2,7 @@
  * main.cpp
  *
  *  Created on: Mar 28, 2012
- *      Author: schreibm
+ *      Author: Martin Schreiber <martin.schreiber@in.tum.de>
  */
 
 
@@ -47,7 +47,7 @@ void myCTRLCHandler(int s)
 
 
 
-int verbose_level = 2;
+int verbosity_level = 2;
 int max_cores = -1;
 bool color_mode = false;
 
@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
 		switch(optchar)
 		{
 		case 'v':
-			verbose_level = atoi(optarg);
+			verbosity_level = atoi(optarg);
 			break;
 
 		case 'c':
@@ -88,7 +88,7 @@ parameter_error:
 parameter_ok:
 	std::cout << "STARTING WORLD SCHEDULER SERVER" << std::endl;
 
-	cWorldScheduler = new CWorldScheduler(max_cores, verbose_level, color_mode);
+	cWorldScheduler = new CWorldScheduler(max_cores, verbosity_level, color_mode);
 
 //	signal(SIGABRT, &myCTRLCHandler);
 //	signal(SIGTERM, &myCTRLCHandler);

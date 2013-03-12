@@ -2,7 +2,7 @@
  * CWorldScheduler_threaded.hpp
  *
  *  Created on: Jun 18, 2012
- *      Author: Martin Schreiber <schreibm@in.tum.de>
+ *      Author: Martin Schreiber <martin.schreiber@in.tum.de>
  */
 
 #ifndef CWORLDSCHEDULER_THREADED_HPP_

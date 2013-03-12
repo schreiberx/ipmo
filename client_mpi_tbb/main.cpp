@@ -2,7 +2,7 @@
  * main.cpp
  *
  *  Created on: Mar 29, 2012
- *      Author: schreibm
+ *      Author: Martin Schreiber <martin.schreiber@in.tum.de>
  */
 
 #define USE_OMP_INSTEAD_OF_TBB		0
@@ -46,9 +46,7 @@ int main(int argc, char *argv[])
 	int use_invasic = 1;
 
 	if (argc > 1)
-	{
 		use_invasic = atoi(argv[1]);
-	}
 
 	if (use_invasic)
 		std::cout << "INVASIC ACTIVATED" << std::endl;
@@ -57,9 +55,7 @@ int main(int argc, char *argv[])
 
 	int verbose_level = 0;
 	if (argc > 2)
-	{
 		verbose_level = atoi(argv[2]);
-	}
 
 	/*
 	 * initialize MPI
@@ -74,21 +70,23 @@ int main(int argc, char *argv[])
 		std::cout << "run with `mpirun -n 2 ./build/client_mpi_tbb_release [use invasic (0/1)] [verbose level (-99 for fancy graphics)]`" << std::endl;
 		return -1;
 	}
-//	std::cout << rank << " " << size << std::endl;
 
 	CWorldScheduler_threaded *cWorldScheduler_threaded;
 
-	if (use_invasic)
+	if (use_invasic > 0)
 	{
 		/*
 		 * allocate & start iPMO server for 1st rank on numa-domain
 		 */
 		if (rank == 0)
 		{
-			cWorldScheduler_threaded = new CWorldScheduler_threaded;
+			if (use_invasic == 1)
+			{
+				cWorldScheduler_threaded = new CWorldScheduler_threaded;
 
-			std::cout << "RANK 0: starting worldscheduler" << std::endl;
-			cWorldScheduler_threaded->start(-1, verbose_level, true);
+				std::cout << "RANK 0: starting worldscheduler" << std::endl;
+				cWorldScheduler_threaded->start(-1, verbose_level, true);
+			}
 		}
 
 		/*
@@ -106,7 +104,7 @@ int main(int argc, char *argv[])
 #endif
 
 		// initial setup request
-		cPmo->invade(1, 1024, 0, nullptr, (float)1);
+		cPmo->invade_blocking(1, 1024, 0, nullptr, (float)1);
 	}
 
 
@@ -125,12 +123,12 @@ int main(int argc, char *argv[])
 		// compute some workload
 		int workload = (t*((rank+size-1)%size) + (100-t)*rank) % 100;
 
-		// for 4 cores only on my laptop, a linear inbalance is not working => use quadratic :-D
+		// for 4 cores only on my laptop, a linear imbalance is not working on dual-core systems
 		workload *= workload;
 
 		std::cout << "    > rank " << rank << " workload: " << workload << std::endl;
 
-		if (use_invasic)
+		if (use_invasic > 0)
 		{
 			// is some message about optimizations available?
 			cPmo->reinvade_nonblocking();
@@ -141,7 +139,7 @@ int main(int argc, char *argv[])
 
 
 		int n;
-		if (use_invasic)
+		if (use_invasic > 0)
 		{
 			n = cPmo->getNumberOfThreads();
 		}
@@ -183,7 +181,7 @@ int main(int argc, char *argv[])
 	double t = cStopwatch.getTimeSinceStart();
 	std::cout << "runtime: " << t << std::endl;
 
-	if (use_invasic)
+	if (use_invasic > 0)
 	{
 //		NEVER MIX retreat() with nonblocking invade/reinvade!
 //	    cPmo_TBB->retreat();
@@ -201,7 +199,8 @@ int main(int argc, char *argv[])
 		 */
 		if (rank == 0)
 		{
-			delete cWorldScheduler_threaded;
+			if (use_invasic == 1)
+				delete cWorldScheduler_threaded;
 		}
 	}
 

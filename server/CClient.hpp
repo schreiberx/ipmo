@@ -2,12 +2,13 @@
  * CClient.hpp
  *
  *  Created on: Mar 29, 2012
- *      Author: schreibm
+ *      Author: Martin Schreiber <martin.schreiber@in.tum.de>
  */
 
 #ifndef CCLIENT_HPP_
 #define CCLIENT_HPP_
 
+#include "CResources.hpp"
 #include <list>
 #include <vector>
 
@@ -18,6 +19,8 @@
  */
 class CClient
 {
+	int verbosity_level;
+
 public:
 	/**
 	 * process id of client
@@ -75,9 +78,11 @@ public:
 	 * create new client with corresponding pid
 	 */
 	CClient(
-			pid_t i_pid,		///< process id of client application
-			int i_client_id		///< unique client id
+			pid_t i_pid,			///< process id of client application
+			int i_client_id,		///< unique client id
+			int i_verbosity_level
 	)	:
+		verbosity_level(i_verbosity_level),
 		pid(i_pid),
 		client_id(i_client_id),
 		constraint_min_cores(0),
@@ -134,6 +139,55 @@ public:
 		exit(-1);
 	}
 
+
+
+	/**
+	 * release all cores associated to the specified client
+	 */
+	void releaseAllClientCoresAndFreeResources(
+			CResources &cResources,
+			bool i_skip_first_core = false	///< skip freeing the first core
+	)
+	{
+		if (verbosity_level > 5)
+			std::cout << *this << ": releaseAllClientCores" << std::endl;
+
+		std::list<int>::iterator iter = assigned_cores.begin();
+
+		if (i_skip_first_core)
+		{
+			assert(iter != assigned_cores.end());
+			iter++;
+		}
+
+		while (iter != assigned_cores.end())
+		{
+			int core_id = *iter;
+
+			if (verbosity_level > 5)
+				std::cout << core_id << ": " << cResources.core_pids[core_id]  << std::endl;
+
+			if (cResources.core_pids[core_id] != pid)
+			{
+				std::cout << *this << ": CORE ID " << core_id << " not associated with client!" << std::endl;
+				assert(false);
+				exit(-1);
+			}
+
+			cResources.core_pids[core_id] = 0;
+			number_of_assigned_cores--;
+
+			if (verbosity_level > 5)
+				std::cout << "Releasing core " << core_id << std::endl;
+
+			iter = assigned_cores.erase(iter);
+		}
+
+		if (i_skip_first_core)
+			assert(number_of_assigned_cores == 1);
+		else
+			assert(number_of_assigned_cores == 0);
+	}
 
 
 	/**

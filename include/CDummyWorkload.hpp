@@ -2,7 +2,7 @@
  * CDummyWorkload.hpp
  *
  *  Created on: Mar 29, 2012
- *      Author: schreibm
+ *      Author: Martin Schreiber <martin.schreiber@in.tum.de>
  */
 
 #ifndef CDUMMYWORKLOAD_HPP_

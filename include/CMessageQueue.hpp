@@ -2,7 +2,7 @@
  * CMessageQueue.hpp
  *
  *  Created on: Mar 29, 2012
- *      Author: schreibm
+ *      Author: Martin Schreiber <martin.schreiber@in.tum.de>
  */
 
 #ifndef CMESSAGE_QUEUE_HPP

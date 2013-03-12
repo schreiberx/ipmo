@@ -2,7 +2,7 @@
  * main.cpp
  *
  *  Created on: Mar 29, 2012
- *      Author: schreibm
+ *      Author: Martin Schreiber <martin.schreiber@in.tum.de>
  */
 
 
@@ -194,7 +194,7 @@ void run5_loop(int max_threads = -1, int workload = 40000)
 {
 	std::cout << "RUN 5 (reinvade)" << std::endl;
 
-	cPmo->reinvade();
+	cPmo->reinvade_blocking();
 
 	double *a = new double[cPmo->getMaxNumberOfThreads()];
 
@@ -306,6 +306,7 @@ int main(int argc, char *argv[])
 		test_program = atoi(argv[1]);
 
 	cPmo = new CPMO_TBB(max_threads);
+	cPmo->setup();
 
 	switch(test_program)
 	{

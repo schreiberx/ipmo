@@ -2,8 +2,12 @@
  * CPMO_TBB.hpp
  *
  *  Created on: May 21, 2012
- *      Author: schreibm
+ *      Author: Martin Schreiber <martin.schreiber@in.tum.de>
  */
+
+#ifdef CPMO_TBB_2_HPP_
+#	error "CPMO_TBB_2 not compatible with CPMO_TBB"
+#endif
 
 #ifndef CPMO_TBB_HPP_
 #define CPMO_TBB_HPP_
@@ -28,68 +32,6 @@
  * the code was slightly modified.
  */
 
-
-pid_t gettid()
-{
-	return (pid_t)syscall(__NR_gettid);
-}
-
-
-bool PinTheThread(
-		int cpu_idx,
-		tbb::atomic<int>& nRemainingThreadsForPinning
-)
-{
-	cpu_set_t orig_mask, target_mask;
-	CPU_ZERO(&target_mask);
-	CPU_SET(cpu_idx, &target_mask);
-	assert(CPU_ISSET(cpu_idx, &target_mask));
-	CPU_ZERO(&orig_mask);
-
-	int res = sched_getaffinity(gettid(), sizeof(cpu_set_t), &orig_mask);
-	assert(res == 0);
-
-	res = sched_setaffinity(gettid(), sizeof(cpu_set_t), &target_mask);
-	assert(res == 0);
-
-	--nRemainingThreadsForPinning;
-	while (nRemainingThreadsForPinning)
-		__TBB_Yield();
-
-	return true;
-}
-
-
-
-class CAffinitySetterTask :
-	public tbb::task
-{
-public:
-	static bool m_result;
-	static tbb::atomic<int> m_nThreads;
-	int m_idx;
-
-	tbb::task* execute ()
-	{
-		m_result = PinTheThread(m_idx, m_nThreads);
-		return NULL;
-	}
-
-public:
-	CAffinitySetterTask(int idx) :
-		m_idx(idx)
-	{}
-
-	friend bool AffinitizeTBB ( int, int /*mode*/ );
-};
-
-
-bool CAffinitySetterTask::m_result;
-tbb::atomic<int> CAffinitySetterTask::m_nThreads;
-
-
-
-
 /*
  * invasive client handler for TBB from hell
  */
@@ -100,21 +42,94 @@ public:
 	tbb::task_scheduler_init *tbb_task_scheduler_init;
 
 
+
+	static pid_t gettid()
+	{
+		return (pid_t)syscall(__NR_gettid);
+	}
+
+
+	static bool PinTheThread(
+			int cpu_idx,
+			tbb::atomic<int>& nRemainingThreadsForPinning
+	)
+	{
+		cpu_set_t orig_mask, target_mask;
+		CPU_ZERO(&target_mask);
+		CPU_SET(cpu_idx, &target_mask);
+		assert(CPU_ISSET(cpu_idx, &target_mask));
+		CPU_ZERO(&orig_mask);
+
+		int res = sched_getaffinity(gettid(), sizeof(cpu_set_t), &orig_mask);
+		assert(res == 0);
+
+		res = sched_setaffinity(gettid(), sizeof(cpu_set_t), &target_mask);
+		assert(res == 0);
+
+		--nRemainingThreadsForPinning;
+		while (nRemainingThreadsForPinning)
+			__TBB_Yield();
+
+		return true;
+	}
+
+
+
+	class CAffinitySetterTask :
+		public tbb::task
+	{
+	public:
+		static bool m_result;
+		static tbb::atomic<int> m_nThreads;
+		int m_idx;
+
+		tbb::task* execute ()
+		{
+			m_result = PinTheThread(m_idx, m_nThreads);
+			return NULL;
+		}
+
+	public:
+		CAffinitySetterTask(int idx) :
+			m_idx(idx)
+		{}
+
+		friend bool AffinitizeTBB ( int, int /*mode*/ );
+	};
+
+
+
+
+
+
 public:
 	/**
 	 * constructor
 	 */
 	CPMO_TBB(
-			int i_max_threads = -1	///< maximum number of threads
-	)
+			int i_max_threads = -1,		///< maximum number of threads
+			bool i_verbosity_level = 0,	///< verbosity level
+			bool i_wait_for_ack = true	///< specifies for how many mpi nodes to wait
+										///< before starting execution in case that MPI is activated
+	)	:
+		CPMO(i_verbosity_level, i_wait_for_ack),
+		tbb_task_scheduler_init(nullptr)
 	{
-		if (max_threads <= 0)
+		if (i_max_threads <= 0)
 			max_threads = tbb::task_scheduler_init::default_num_threads();
 		else
 			max_threads = i_max_threads;
 
-		tbb_task_scheduler_init = new tbb::task_scheduler_init(1);
-		num_running_threads = 1;
+		if (i_wait_for_ack)
+		{
+//			assert(num_computing_threads > 0);
+			setNumberOfThreads(1);
+		}
+		else
+		{
+			// no ack, no running thread
+			assert(num_computing_threads == 0);
+		}
 	}
 
 
@@ -134,11 +149,12 @@ public:
 	 */
 	void setNumberOfThreads(int n)
 	{
-		num_running_threads = n;
+		num_computing_threads = n;
 
-		delete tbb_task_scheduler_init;
+		if (tbb_task_scheduler_init)
+			delete tbb_task_scheduler_init;
 
-		tbb_task_scheduler_init = new tbb::task_scheduler_init(num_running_threads);
+		tbb_task_scheduler_init = new tbb::task_scheduler_init(num_computing_threads);
 	}
 
 
@@ -156,7 +172,7 @@ public:
 	 */
 	int getNumberOfThreads()
 	{
-		return num_running_threads;
+		return num_computing_threads;
 	}
 
 
@@ -182,10 +198,10 @@ public:
 			int i_number_of_cpu_affinities
 	)
 	{
-		if (num_running_threads == 0)
+		if (num_computing_threads == 0)
 			return;
 
-		assert(i_number_of_cpu_affinities == num_running_threads);
+		assert(i_number_of_cpu_affinities == num_computing_threads);
 
 		CAffinitySetterTask::m_result = true;
 		CAffinitySetterTask::m_nThreads = i_number_of_cpu_affinities;
@@ -202,6 +218,10 @@ public:
 
 	}
 };
+
+bool CPMO_TBB::CAffinitySetterTask::m_result;
+tbb::atomic<int> CPMO_TBB::CAffinitySetterTask::m_nThreads;
+
 
 
 #endif /* CPMO_HPP_ */
